@@ -1214,7 +1214,7 @@ Settings = {
     const ob = $('#os-bg'); if(ob) ob.style.display = (this.data.theme === 'light') ? 'none' : '';
     const logoImg = document.getElementById('startLogo');
     const light = this.data.theme === 'light';
-    const logoMap = { favorite: light ? 'CCM2.png' : 'CCM1.png', 'new-people': light ? 'CCM23.png' : 'CCM13.png', custom: light ? 'CCM22.png' : 'CCM12.png' };
+    const logoMap = { favorite: light ? 'CCM2.png' : 'CCM1.png', 'new-people': light ? 'CCM13.png' : 'CCM23.png', custom: light ? 'CCM12.png' : 'CCM22.png' };
     if(logoImg) logoImg.src = logoMap[preset] || logoMap.favorite;
     window.dispatchEvent(new CustomEvent('mict-theme-change', { detail: { theme: this.data.theme, accentPreset: preset } }));
   },
@@ -2640,7 +2640,7 @@ APP_DEFS.about = {
 
     function logoFile(){
       const preset = Settings.data.accentPreset || 'favorite';
-      const map = { favorite: currentTheme === 'light' ? 'CCM2.png' : 'CCM1.png', 'new-people': currentTheme === 'light' ? 'CCM23.png' : 'CCM13.png', custom: currentTheme === 'light' ? 'CCM22.png' : 'CCM12.png' };
+      const map = { favorite: currentTheme === 'light' ? 'CCM2.png' : 'CCM1.png', 'new-people': currentTheme === 'light' ? 'CCM13.png' : 'CCM23.png', custom: currentTheme === 'light' ? 'CCM12.png' : 'CCM22.png' };
       return map[preset] || map.favorite;
     }
 
