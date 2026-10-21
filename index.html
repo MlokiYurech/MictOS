@@ -1171,13 +1171,13 @@ Settings = {
   data: {
     theme: 'dark', dockPosition: 'top',
     dots: { close:'#ff5f57', min:'#febc2e', max:'#28c840' },
-    scale: 1, particles: true, accent: '#e10600', iconMode: 'flat',
+    scale: 1, particles: true, accent: '#e10600', accentPreset: 'favorite', iconMode: 'flat',
     background: 'wallpaper-folder', bgSpeed: 1, firstRunDone: false,
     winRadius: 24, winRadiusMax: 0, dockRadius: 30, dockAppRadius: 12,
     startMenuRadius: 32, winBtnOrder: 'center',
     pinnedApps: ['cooke','files','terminal']
   },
-  load(){ try{ const raw = localStorage.getItem(PKEY('settings')); if(raw) Object.assign(this.data, JSON.parse(raw)); }catch(e){} this.apply(); },
+  load(){ try{ const raw = localStorage.getItem(PKEY('settings')); if(raw){ const saved = JSON.parse(raw); Object.assign(this.data, saved); if(!saved.accentPreset) this.data.accentPreset = (saved.accent && saved.accent.toLowerCase() !== '#e10600') ? 'custom' : 'favorite'; } }catch(e){} this.apply(); },
   save(){ try{ localStorage.setItem(PKEY('settings'), JSON.stringify(this.data)); }catch(e){} },
   apply(){
     const r = document.documentElement;
@@ -1186,7 +1186,10 @@ Settings = {
     r.style.setProperty('--dot-min',   this.data.dots.min);
     r.style.setProperty('--dot-max',   this.data.dots.max);
     r.style.setProperty('--ui-scale', String(this.data.scale));
-    const accent = this.data.accent;
+    const preset = this.data.accentPreset || 'favorite';
+    if(preset === 'favorite') this.data.accent = '#e10600';
+    else if(preset === 'new-people') this.data.accent = '#00fff2';
+    const accent = this.data.accent || '#e10600';
     const accent2 = lighten(accent, 0.15);
     const [ar,ag,ab] = hexToRgb(accent);
     r.style.setProperty('--accent', accent);
@@ -1210,8 +1213,10 @@ Settings = {
     BACKGROUNDS.setSpeed(this.data.bgSpeed ?? 1);
     const ob = $('#os-bg'); if(ob) ob.style.display = (this.data.theme === 'light') ? 'none' : '';
     const logoImg = document.getElementById('startLogo');
-    if(logoImg) logoImg.src = (this.data.theme === 'light') ? 'CCM2.png' : 'CCM1.png';
-    window.dispatchEvent(new CustomEvent('mict-theme-change', { detail: { theme: this.data.theme } }));
+    const light = this.data.theme === 'light';
+    const logoMap = { favorite: light ? 'CCM2.png' : 'CCM1.png', 'new-people': light ? 'CCM23.png' : 'CCM13.png', custom: light ? 'CCM22.png' : 'CCM12.png' };
+    if(logoImg) logoImg.src = logoMap[preset] || logoMap.favorite;
+    window.dispatchEvent(new CustomEvent('mict-theme-change', { detail: { theme: this.data.theme, accentPreset: preset } }));
   },
   set(k, v){ this.data[k] = v; this.save(); this.apply(); }
 };
@@ -2633,7 +2638,11 @@ APP_DEFS.about = {
     let currentTheme = document.documentElement.hasAttribute('data-theme') ? 'light' : 'black';
     const H = detectHostInfo();
 
-    function logoFile(){ return currentTheme === 'light' ? 'CCM2.png' : 'CCM1.png'; }
+    function logoFile(){
+      const preset = Settings.data.accentPreset || 'favorite';
+      const map = { favorite: currentTheme === 'light' ? 'CCM2.png' : 'CCM1.png', 'new-people': currentTheme === 'light' ? 'CCM23.png' : 'CCM13.png', custom: currentTheme === 'light' ? 'CCM22.png' : 'CCM12.png' };
+      return map[preset] || map.favorite;
+    }
 
     const cardSystem = () => `
       <div class="about-card">
@@ -2878,7 +2887,7 @@ APP_DEFS.settings = {
         <div class="set-row"><div><label>Тема</label><div class="hint">Тёмная / светлая</div></div>
           <select class="set-select" id="setTheme"><option value="dark" ${S.theme==='dark'?'selected':''}>Тёмная (black)</option><option value="light" ${S.theme==='light'?'selected':''}>Светлая (light)</option></select></div>
         <div class="set-row"><div><label>Масштаб интерфейса</label><div class="hint">80% – 130%</div></div><input type="range" id="setScale" min="0.8" max="1.3" step="0.05" value="${S.scale}" style="width:160px;accent-color:var(--accent)"></div>
-        <div class="set-row"><div><label>Акцентный цвет</label><div class="hint">Основной цвет интерфейса</div></div><div class="color-picker"><input type="color" id="setAccent" value="${S.accent}"></div></div>
+        <div class="set-row"><div><label>Акцентный цвет</label><div class="hint">Фаворит, Новые Люди или собственный цвет</div></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><select class="set-select" id="setAccentPreset"><option value="favorite" ${(!S.accentPreset || S.accentPreset==='favorite')?'selected':''}>Фаворит</option><option value="new-people" ${S.accentPreset==='new-people'?'selected':''}>Новые Люди</option><option value="custom" ${S.accentPreset==='custom'?'selected':''}>Свойский</option></select><div class="color-picker" id="customAccentPicker" style="${S.accentPreset==='custom'?'':'display:none'}"><input type="color" id="setAccent" value="${S.accent}" aria-label="Свой акцентный цвет"></div></div></div>
         <div class="set-row"><div><label>Стиль иконок</label><div class="hint">Монохром · Цветной · Минимализм</div></div>
           <select class="set-select" id="setIconMode"><option value="mono" ${S.iconMode==='mono'?'selected':''}>Монохромный</option><option value="color" ${S.iconMode==='color'?'selected':''}>Цветной</option><option value="flat" ${S.iconMode==='flat'?'selected':''}>Минимализм</option></select></div>
       </div>
@@ -2914,7 +2923,20 @@ APP_DEFS.settings = {
     });
     body.querySelector('#setTheme').onchange = e=>{ Settings.set('theme', e.target.value); requestAnimationFrame(()=>{ bgGrid.querySelectorAll('.bg-pick').forEach(el=>{ const c = el.querySelector('canvas'); try{ BACKGROUNDS.renderPreview(c, el.dataset.bg); }catch(e){} }); }); };
     body.querySelector('#setScale').oninput = e=>Settings.set('scale', parseFloat(e.target.value));
-    body.querySelector('#setAccent').oninput = e=>{ Settings.set('accent', e.target.value); requestAnimationFrame(()=>{ bgGrid.querySelectorAll('.bg-pick').forEach(el=>{ const c = el.querySelector('canvas'); try{ BACKGROUNDS.renderPreview(c, el.dataset.bg); }catch(e){} }); }); };
+    const accentPreset = body.querySelector('#setAccentPreset');
+    const customAccentPicker = body.querySelector('#customAccentPicker');
+    accentPreset.onchange = e=>{
+      const preset = e.target.value;
+      Settings.data.accentPreset = preset;
+      if(preset === 'favorite') Settings.data.accent = '#e10600';
+      else if(preset === 'new-people') Settings.data.accent = '#00fff2';
+      customAccentPicker.style.display = preset === 'custom' ? 'flex' : 'none';
+      const picker = body.querySelector('#setAccent');
+      if(picker) picker.value = Settings.data.accent;
+      Settings.save(); Settings.apply();
+      requestAnimationFrame(()=>{ bgGrid.querySelectorAll('.bg-pick').forEach(el=>{ const c = el.querySelector('canvas'); try{ BACKGROUNDS.renderPreview(c, el.dataset.bg); }catch(e){} }); });
+    };
+    body.querySelector('#setAccent').oninput = e=>{ Settings.data.accentPreset = 'custom'; accentPreset.value = 'custom'; customAccentPicker.style.display = 'flex'; Settings.set('accent', e.target.value); requestAnimationFrame(()=>{ bgGrid.querySelectorAll('.bg-pick').forEach(el=>{ const c = el.querySelector('canvas'); try{ BACKGROUNDS.renderPreview(c, el.dataset.bg); }catch(e){} }); }); };
     body.querySelector('#setIconMode').onchange = e=>{ Settings.set('iconMode', e.target.value); if(Dock) Dock.render(); };
     body.querySelector('#setBgSpeed').oninput = e=>Settings.set('bgSpeed', parseFloat(e.target.value));
     body.querySelector('#dotClose').oninput = e=>{ Settings.data.dots.close = e.target.value; Settings.save(); Settings.apply(); };
